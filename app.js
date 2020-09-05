@@ -9,6 +9,7 @@ var config = require('./cloudant_config.json')
 var cloudant = Cloudant({ url: config.url, plugins: { iamauth: { iamApiKey: config.apikey } } });
 var dbname = 'image';
 var db = cloudant.db.use(dbname);
+// To be modified under cloud deployment
 const imageFolderPath = "/Users/wangtaohao/coop4/image_repo/images/"
 let bodyParser = require('body-parser')
 var sizeOf = require('image-size');
@@ -31,6 +32,19 @@ async function labelDetect(imagePath) {
   return tags;
 }
 
+const {Storage} = require('@google-cloud/storage');
+
+const storage = new Storage();
+
+async function uploadFile(filename) {
+  await storage.bucket('shopify_project_image').upload(filename, {
+    gzip: true,
+    metadata: {
+      cacheControl: 'public, max-age=31536000',
+    },
+  });
+}
+
 app.use(cors());
 app.use(bodyParser.json({limit: '10mb', extended: true}))
 app.use(bodyParser.urlencoded({limit: '10mb', extended: true}))
@@ -42,11 +56,13 @@ app.post('/upload-image/', function (req, res) {
   const randomNumber = Math.floor(Math.random() * 10);
   let filePath = imageFolderPath + imageName + randomNumber + '.jpg';
   fs.writeFile(filePath, new Buffer(base64Data, 'base64'), ()=>{});
+  // upload to cloud storage
+  uploadFile(filePath);
+
   // Call labelDetect to get the tags of the image
   labelDetect(filePath).then((result) => {
     // Insert document to image DB
     var dimensions = sizeOf(filePath);
-    console.log(dimensions.width, dimensions.height);
     let tagsStr = "";
     for (let i = 0; i < result.length-1; i++) {
       tagsStr = tagsStr + result[i].toLowerCase() + ',';
