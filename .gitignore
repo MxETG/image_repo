@@ -102,3 +102,12 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Config & Api key
+cloudant_config.json
+my-key.json
+
+# image folder
+images
+
+.DS_Store
